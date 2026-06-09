@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tin Giáo Dục Hôm Nay</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0ede6;color:#1a1a1a;min-height:100vh}
+.top-bar{background:#1B3A6B;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);flex-wrap:wrap}
+.top-bar h1{font-size:16px;font-weight:600;flex:1;min-width:160px}
+.date-txt{font-size:12px;opacity:.7}
+.btn{font-size:13px;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.13);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit;transition:background .15s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.23)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.container{max-width:900px;margin:0 auto;padding:16px 12px}
+.toolbar{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.toolbar input{flex:1;min-width:180px;font-size:13px;padding:9px 14px;border-radius:8px;border:1px solid #d0cdc6;background:#fff;color:#1a1a1a;font-family:inherit;outline:none}
+.toolbar input:focus{border-color:#1B3A6B;box-shadow:0 0 0 3px rgba(27,58,107,.1)}
+.sort-btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #c8c5be;background:#fff;cursor:pointer;font-family:inherit;color:#555;transition:all .15s;white-space:nowrap}
+.sort-btn.active{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.stats{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.stat{background:#fff;border-radius:10px;border:1px solid #e0ddd5;padding:10px 16px;min-width:100px}
+.stat .num{font-size:20px;font-weight:700;color:#1B3A6B;line-height:1}
+.stat .lbl{font-size:11px;color:#888;margin-top:3px}
+.status-row{font-size:12px;color:#888;margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.dot-ok{background:#2d7a1f}.dot-err{background:#b03030}.dot-load{background:#c07a10;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.prog-wrap{height:3px;background:#ddd;border-radius:2px;margin-bottom:12px}
+.prog-bar{height:100%;background:#1B3A6B;border-radius:2px;transition:width .3s}
+.section{background:#fff;border-radius:12px;border:1px solid #e0ddd5;margin-bottom:10px;overflow:hidden}
+.sec-hd{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.sec-hd:hover{background:#faf8f4}
+.sec-hd h2{font-size:14px;font-weight:600;flex:1}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px}
+.badge-on{background:#d6e8ff;color:#1B3A6B}.badge-off{background:#eceae4;color:#999}
+.chev{color:#bbb;font-size:12px;transition:transform .18s}
+.section.shut .chev{transform:rotate(-90deg)}
+.section.shut .sec-bd{display:none}
+.sec-bd{border-top:1px solid #f0ede6}
+.art{display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-bottom:1px solid #f5f2ec}
+.art:last-child{border-bottom:none}
+.src{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.art-body{flex:1;min-width:0}
+.art-gtag{font-size:10px;color:#aaa;margin-bottom:2px}
+.ttl a{font-size:13px;color:#185FA5;text-decoration:none;line-height:1.45;display:block}
+.ttl a:hover{text-decoration:underline}
+.tm{font-size:11px;color:#bbb;white-space:nowrap;flex-shrink:0;margin-top:3px}
+.empty{padding:12px 16px;font-size:13px;color:#bbb}
+#flat-list{background:#fff;border-radius:12px;border:1px solid #e0ddd5;overflow:hidden}
+.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.global-empty{text-align:center;padding:48px 20px;color:#aaa}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <h1>📰 Tin giáo dục hôm nay</h1>
+  <span class="date-txt" id="date-lbl"></span>
+  <button class="btn" id="btn" onclick="loadAll()"><span id="btn-ic">↻</span> Cập nhật</button>
+</div>
+<div class="container">
+  <div class="toolbar">
+    <input type="text" id="srch" placeholder="🔍  Lọc theo tiêu đề..." oninput="doFilter()">
+    <button class="sort-btn active" id="sg" onclick="setSort('group')">📍 Theo tỉnh/nhóm</button>
+    <button class="sort-btn" id="st" onclick="setSort('time')">🕐 Theo giờ mới nhất</button>
+  </div>
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="num" id="s-total">0</div><div class="lbl">bài hôm nay</div></div>
+    <div class="stat"><div class="num" id="s-src">0</div><div class="lbl">nguồn có bài</div></div>
+    <div class="stat"><div class="num" id="s-grp">0</div><div class="lbl">tỉnh/nhóm</div></div>
+  </div>
+  <div class="prog-wrap" id="pw" style="display:none"><div class="prog-bar" id="pb" style="width:0%"></div></div>
+  <div class="status-row" id="sr"></div>
+  <div id="output"></div>
+</div>
+
+<script>
+const TZ='Asia/Ho_Chi_Minh';
+const now=new Date();
+const todayVN=now.toLocaleDateString('vi-VN',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'});
+document.getElementById('date-lbl').textContent=now.toLocaleDateString('vi-VN',{timeZone:TZ,weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+
+// Proxy = Netlify Function của chính site này (không bao giờ bị CORS)
+const PROXY = url => `/.netlify/functions/rss?url=${encodeURIComponent(url)}`;
+
+const SOURCES=[
+  // Quốc gia — RSS chuyên mục giáo dục đã xác nhận
+  {g:'Việt Nam',n:'VnExpress',    c:'#0C447C',b:'#ddeaf8',rss:'https://vnexpress.net/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Dân Trí',      c:'#27500A',b:'#d8ecc4',rss:'https://dantri.com.vn/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Tuổi Trẻ',     c:'#633806',b:'#fce9cc',rss:'https://tuoitre.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Thanh Niên',   c:'#7a2e14',b:'#fad9cc',rss:'https://thanhnien.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Znews',        c:'#3C3489',b:'#dddcf8',rss:'https://znews.vn/rss/giao-duc.html',kw:null},
+  {g:'Việt Nam',n:'VietnamNet',   c:'#0d4b83',b:'#cfe0f5',rss:'https://vietnamnet.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Nhân Dân',     c:'#7a1a1a',b:'#f9d8d8',rss:'https://nhandan.vn/rss/giaoduc.rss',kw:null},
+  {g:'Việt Nam',n:'Lao Động',     c:'#3a3937',b:'#e5e4de',rss:'https://laodong.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'VOV',          c:'#084034',b:'#caeadf',rss:'https://vov.vn/rss/xa-hoi/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'GD Thời Đại',  c:'#5e2210',b:'#fad8cc',rss:'https://giaoducthoidai.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Tiền Phong',   c:'#173404',b:'#d4e8b8',rss:'https://tienphong.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Người Đưa Tin',c:'#412402',b:'#f5ddb8',rss:'https://www.nguoiduatin.vn/rss/xa-hoi/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'VietnamPlus',  c:'#042C53',b:'#b5d4f4',rss:'https://www.vietnamplus.vn/rss/giaoduc.rss',kw:null},
+  {g:'Việt Nam',n:'Báo Chính Phủ',c:'#501313',b:'#f9d8d8',rss:'https://baochinhphu.vn/rss/giao-duc.rss',kw:null},
+  {g:'Việt Nam',n:'Báo Mới',      c:'#26215C',b:'#d9d8f9',rss:'https://baomoi.com/giao-duc.epi/rss.epi',kw:null},
+  // Địa phương — thử nhiều pattern, lấy cái đầu tiên có XML
+  {g:'Hà Nội',        n:'Hà Nội Mới',   c:'#0C447C',b:'#cfe0f5',rss:'https://hanoimoi.vn/rss/giao-duc.rss',alt:['https://hanoimoi.vn/rss/tin-tuc.rss'],kw:'giáo dục'},
+  {g:'Hải Phòng',     n:'Báo HP',        c:'#0C447C',b:'#cfe0f5',rss:'https://baohaiphong.vn/rss/khoa-hoc-giao-duc/giao-duc-va-dao-tao.rss',alt:['https://baohaiphong.vn/rss/tin-tuc.rss'],kw:'giáo dục'},
+  {g:'Đà Nẵng',       n:'Báo ĐN',        c:'#085041',b:'#caeadf',rss:'https://baodanang.vn/rss/giao-duc.rss',alt:['https://baodanang.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Quảng Ninh',    n:'Báo QN',        c:'#3C3489',b:'#dddcf8',rss:'https://baoquangninh.vn/rss/xa-hoi/giao-duc.rss',alt:['https://baoquangninh.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Bắc Giang',     n:'Báo BG',        c:'#633806',b:'#fce9cc',rss:'https://baobacgiang.vn/rss/giao-duc.rss',alt:['https://baobacgiang.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Hải Dương',     n:'Báo HảiDương',  c:'#27500A',b:'#d8ecc4',rss:'https://baohaiduong.vn/rss/giao-duc.rss',alt:['https://baohaiduong.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Hưng Yên',      n:'Báo HY',        c:'#7a2e14',b:'#fad9cc',rss:'https://baohungyen.vn/rss/giao-duc.rss',alt:['https://baohungyen.vn/rss/xa-hoi.rss','https://baohungyen.vn/rss.xml'],kw:'giáo dục'},
+  {g:'Thái Bình',     n:'Báo TB',        c:'#0C447C',b:'#cfe0f5',rss:'https://baothaibinh.com.vn/rss/giao-duc.rss',alt:['https://baothaibinh.com.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Nam Định',      n:'Báo NĐ',        c:'#0d4b83',b:'#cfe0f5',rss:'https://baonamdinh.vn/rss/giao-duc.rss',alt:['https://baonamdinh.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Ninh Bình',     n:'Báo NB',        c:'#085041',b:'#caeadf',rss:'https://baoninhbinh.org.vn/rss/giao-duc-dao-tao.rss',alt:['https://baoninhbinh.org.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Thanh Hóa',     n:'Báo TH',        c:'#412402',b:'#f5ddb8',rss:'https://baothanhhoa.vn/rss/giao-duc.rss',alt:['https://baothanhhoa.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Nghệ An',       n:'Báo NA',        c:'#27500A',b:'#d8ecc4',rss:'https://baonghean.vn/rss/giao-duc.rss',alt:['https://baonghean.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Hà Tĩnh',       n:'Báo HT',        c:'#173404',b:'#d4e8b8',rss:'https://baohatinh.vn/rss/giao-duc.rss',alt:['https://baohatinh.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Quảng Bình',    n:'Báo QB',        c:'#3C3489',b:'#dddcf8',rss:'https://baoquangbinh.vn/rss/giao-duc.rss',alt:['https://baoquangbinh.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Quảng Trị',     n:'Báo QT',        c:'#7a1a1a',b:'#f9d8d8',rss:'https://baoquangtri.vn/rss/giao-duc.rss',alt:['https://baoquangtri.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+  {g:'Thừa Thiên Huế',n:'Báo TTH',       c:'#5e1a30',b:'#f4c0d1',rss:'https://baothuathienhue.vn/rss/giao-duc.rss',alt:['https://baothuathienhue.vn/rss/xa-hoi.rss'],kw:'giáo dục'},
+];
+
+function isToday(ds){
+  if(!ds)return false;
+  const d=new Date(ds);
+  if(isNaN(d))return false;
+  return d.toLocaleDateString('vi-VN',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'})===todayVN;
+}
+function fmtTime(ds){
+  if(!ds)return'';
+  const d=new Date(ds);
+  return isNaN(d)?'':d.toLocaleTimeString('vi-VN',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});
+}
+function parseRSS(xml){
+  const doc=new DOMParser().parseFromString(xml,'text/xml');
+  const items=[];
+  doc.querySelectorAll('item').forEach(node=>{
+    const g=t=>node.querySelector(t)?.textContent?.trim()||'';
+    const link=g('link')||node.querySelector('guid')?.textContent?.trim()||'';
+    items.push({title:g('title'),link,pubDate:g('pubDate')});
+  });
+  return items;
+}
+function hasRSS(text){ return text&&(text.includes('<item')||text.includes('<rss')||text.includes('<channel')); }
+
+async function tryUrl(url){
+  try{
+    const r=await fetch(PROXY(url),{signal:AbortSignal.timeout(12000)});
+    if(!r.ok)return null;
+    const t=await r.text();
+    return hasRSS(t)?t:null;
+  }catch{return null;}
+}
+
+async function fetchRSS(src){
+  // Thử URL chính trước, rồi fallback alt[]
+  const urls=[src.rss,...(src.alt||[])];
+  for(const url of urls){
+    const xml=await tryUrl(url);
+    if(xml){
+      let items=parseRSS(xml).filter(it=>isToday(it.pubDate));
+      if(src.kw){
+        const kw=src.kw.toLowerCase();
+        items=items.filter(it=>(it.title||'').toLowerCase().includes(kw)||(it.link||'').toLowerCase().includes('giao-duc')||(it.link||'').toLowerCase().includes('giaoduc'));
+      }
+      return{src,items,ok:true};
+    }
+  }
+  return{src,items:[],ok:false};
+}
+
+let allResults=[];
+let sortMode='group';
+
+function setSort(m){
+  sortMode=m;
+  document.getElementById('sg').className='sort-btn'+(m==='group'?' active':'');
+  document.getElementById('st').className='sort-btn'+(m==='time'?' active':'');
+  render();
+}
+function doFilter(){
+  const q=document.getElementById('srch').value.toLowerCase().trim();
+  document.querySelectorAll('.art').forEach(el=>{
+    el.style.display=(!q||(el.dataset.t||'').includes(q))?'':'none';
+  });
+  document.querySelectorAll('.section').forEach(sec=>{
+    const any=[...sec.querySelectorAll('.art')].some(e=>e.style.display!=='none');
+    const em=sec.querySelector('.empty');
+    if(em)em.style.display=any?'none':'';
+  });
+}
+function toggle(el){el.closest('.section').classList.toggle('shut')}
+function artHTML(it,showGroup){
+  const s=it._s;
+  const t=(it.title||'').replace(/</g,'&lt;');
+  return`<div class="art" data-t="${t.toLowerCase()}">
+    <span class="src" style="color:${s.c};background:${s.b}">${s.n}</span>
+    <div class="art-body">
+      ${showGroup?`<div class="art-gtag">${s.g}</div>`:''}
+      <div class="ttl"><a href="${it.link||'#'}" target="_blank" rel="noopener">${t}</a></div>
+    </div>
+    <span class="tm">${fmtTime(it.pubDate)}</span>
+  </div>`;
+}
+function render(){
+  if(!allResults.length)return;
+  let allArts=[];
+  allResults.forEach(r=>r.items.forEach(it=>allArts.push({...it,_s:r.src})));
+  allArts.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+  let html='';
+  if(sortMode==='time'){
+    html=allArts.length
+      ?'<div id="flat-list">'+allArts.map(it=>artHTML(it,true)).join('')+'</div>'
+      :`<div class="global-empty"><div style="font-size:36px;margin-bottom:10px">☕</div><div>Chưa có bài nào hôm nay</div></div>`;
+  }else{
+    const grouped={};
+    allResults.forEach(r=>{
+      if(!grouped[r.src.g])grouped[r.src.g]=[];
+      r.items.forEach(it=>grouped[r.src.g].push({...it,_s:r.src}));
+    });
+    const order=['Việt Nam',...Object.keys(grouped).filter(g=>g!=='Việt Nam').sort()];
+    order.forEach(g=>{
+      if(!grouped[g])return;
+      const arts=grouped[g].sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+      html+=`<div class="section${arts.length?'':' shut'}">
+        <div class="sec-hd" onclick="toggle(this)">
+          <h2>${g}</h2><span class="badge ${arts.length?'badge-on':'badge-off'}">${arts.length} bài</span><span class="chev">▾</span>
+        </div><div class="sec-bd">${arts.length?arts.map(it=>artHTML(it,false)).join(''):'<div class="empty">Chưa có bài mới hôm nay</div>'}</div></div>`;
+    });
+    if(!allArts.length)html=`<div class="global-empty"><div style="font-size:36px;margin-bottom:10px">☕</div><div>Chưa có bài nào hôm nay</div></div>`;
+  }
+  document.getElementById('output').innerHTML=html;
+  doFilter();
+}
+
+async function loadAll(){
+  const btn=document.getElementById('btn');
+  const ic=document.getElementById('btn-ic');
+  btn.disabled=true;ic.className='spin';ic.textContent='↻';
+  document.getElementById('stats').style.display='none';
+  document.getElementById('output').innerHTML='';
+  document.getElementById('pw').style.display='block';
+  document.getElementById('pb').style.width='0%';
+  document.getElementById('sr').innerHTML=`<span><span class="dot dot-load"></span>Đang tải ${SOURCES.length} nguồn...</span>`;
+  let done=0;
+  const pb=document.getElementById('pb');
+  allResults=await Promise.all(SOURCES.map(async src=>{
+    const r=await fetchRSS(src);
+    done++;pb.style.width=(done/SOURCES.length*100)+'%';
+    return r;
+  }));
+  document.getElementById('pw').style.display='none';
+  const total=allResults.flatMap(r=>r.items).length;
+  const srcOK=allResults.filter(r=>r.items.length>0).length;
+  const grpOK=new Set(allResults.filter(r=>r.items.length).map(r=>r.src.g)).size;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-src').textContent=srcOK;
+  document.getElementById('s-grp').textContent=grpOK;
+  document.getElementById('stats').style.display='flex';
+  const ok=allResults.filter(r=>r.ok).length;
+  const err=allResults.filter(r=>!r.ok).length;
+  document.getElementById('sr').innerHTML=
+    `<span><span class="dot dot-ok"></span>${ok} nguồn OK</span>`+
+    (err?`<span><span class="dot dot-err"></span>${err} nguồn chưa có RSS hợp lệ</span>`:'')+
+    `<span style="margin-left:auto;font-size:11px">Cập nhật lúc ${new Date().toLocaleTimeString('vi-VN',{timeZone:TZ,hour:'2-digit',minute:'2-digit'})}</span>`;
+  render();
+  btn.disabled=false;ic.className='';ic.textContent='↻';
+}
+
+loadAll();
+</script>
+</body>
+</html>
